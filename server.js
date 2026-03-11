@@ -18,7 +18,7 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
 // ── Serve camera app (built Vite output) at /camera ─
 app.use('/camera', express.static(join(__dirname, 'dist')));
