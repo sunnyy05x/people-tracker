@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Live people tracking dashboard — see real-time counts and stats from the AI-powered camera." />
+  <title>People Tracker — Live Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ===== Design Tokens ===== */
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-glass: rgba(255,255,255,0.04);
+      --bg-glass-hover: rgba(255,255,255,0.08);
+      --border-glass: rgba(255,255,255,0.08);
+      --border-glass-strong: rgba(255,255,255,0.15);
+      --text-primary: #f9fafb;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      --accent: #6366f1;
+      --accent-glow: rgba(99,102,241,0.35);
+      --accent-gradient: linear-gradient(135deg,#6366f1,#8b5cf6,#a78bfa);
+      --success: #34d399;
+      --danger: #f87171;
+      --font: 'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+      --radius: 16px;
+    }
+
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{font-size:16px}
+    body{
+      font-family:var(--font);
+      background:var(--bg-primary);
+      color:var(--text-primary);
+      min-height:100dvh;
+      -webkit-font-smoothing:antialiased;
+      overflow-x:hidden;
+    }
+    body::before{
+      content:'';position:fixed;inset:0;
+      background:radial-gradient(circle at 25% 15%,rgba(99,102,241,.1) 0%,transparent 55%),
+                  radial-gradient(circle at 75% 75%,rgba(139,92,246,.07) 0%,transparent 55%);
+      pointer-events:none;z-index:-1;
+    }
+
+    /* ===== Layout ===== */
+    .container{max-width:900px;margin:0 auto;padding:24px 20px 40px}
+
+    /* ===== Header ===== */
+    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:12px}
+    .header-left{display:flex;align-items:center;gap:14px}
+    .logo{
+      width:46px;height:46px;border-radius:14px;
+      background:var(--accent-gradient);
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;box-shadow:0 0 24px var(--accent-glow);
+    }
+    .header h1{font-size:1.4rem;font-weight:800;letter-spacing:-.03em;
+      background:var(--accent-gradient);-webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;background-clip:text}
+    .header p{font-size:.82rem;color:var(--text-muted);font-weight:400;margin-top:2px}
+
+    .connection-badge{
+      display:flex;align-items:center;gap:8px;
+      padding:8px 18px;border-radius:100px;
+      font-size:.8rem;font-weight:600;
+      border:1px solid var(--border-glass);
+      background:var(--bg-glass);
+      transition:all .3s ease;
+    }
+    .connection-badge.connected{border-color:var(--success);color:var(--success);background:rgba(52,211,153,.08)}
+    .connection-badge.disconnected{border-color:var(--danger);color:var(--danger);background:rgba(248,113,113,.08)}
+    .conn-dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+    .connection-badge.connected .conn-dot{box-shadow:0 0 10px rgba(52,211,153,.5);animation:blink 2s ease-in-out infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+    /* ===== Hero Count ===== */
+    .hero-card{
+      background:var(--bg-glass);
+      border:1px solid var(--border-glass);
+      border-radius:var(--radius);
+      padding:48px 32px;
+      text-align:center;
+      margin-bottom:20px;
+      position:relative;
+      overflow:hidden;
+    }
+    .hero-card::before{
+      content:'';position:absolute;inset:0;
+      background:radial-gradient(ellipse at 50% 0%,rgba(99,102,241,.12) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    .hero-count{
+      font-size:7rem;font-weight:900;line-height:1;
+      background:var(--accent-gradient);-webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;background-clip:text;
+      position:relative;z-index:1;
+      transition:transform .2s ease;
+    }
+    .hero-count.bump{animation:bump .4s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+    .hero-label{
+      font-size:1rem;color:var(--text-secondary);
+      font-weight:500;text-transform:uppercase;letter-spacing:.1em;
+      margin-top:8px;position:relative;z-index:1;
+    }
+
+    /* ===== Stats Grid ===== */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+    .stat-card{
+      background:var(--bg-glass);border:1px solid var(--border-glass);
+      border-radius:var(--radius);padding:24px 20px;
+      transition:all .3s ease;
+    }
+    .stat-card:hover{background:var(--bg-glass-hover);border-color:var(--border-glass-strong);transform:translateY(-3px)}
+    .stat-icon{
+      width:36px;height:36px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;
+      margin-bottom:14px;font-size:1.1rem;
+    }
+    .stat-icon.purple{background:rgba(99,102,241,.15);color:#818cf8}
+    .stat-icon.green{background:rgba(52,211,153,.15);color:#34d399}
+    .stat-icon.blue{background:rgba(59,130,246,.15);color:#60a5fa}
+    .stat-icon.amber{background:rgba(251,191,36,.15);color:#fbbf24}
+    .stat-val{font-size:2rem;font-weight:800;line-height:1.1}
+    .stat-lbl{font-size:.72rem;color:var(--text-muted);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+
+    /* ===== History Chart ===== */
+    .chart-card{
+      background:var(--bg-glass);border:1px solid var(--border-glass);
+      border-radius:var(--radius);padding:24px;margin-bottom:20px;
+    }
+    .chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .chart-title{font-size:.88rem;font-weight:700;color:var(--text-secondary)}
+    .chart-subtitle{font-size:.72rem;color:var(--text-muted)}
+    canvas#history-chart{width:100%!important;height:180px}
+
+    /* ===== Detection Log ===== */
+    .log-card{
+      background:var(--bg-glass);border:1px solid var(--border-glass);
+      border-radius:var(--radius);padding:24px;
+    }
+    .log-title{font-size:.88rem;font-weight:700;color:var(--text-secondary);margin-bottom:14px}
+    .log-list{list-style:none;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+    .log-item{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:10px 14px;border-radius:10px;
+      background:rgba(255,255,255,.02);
+      border:1px solid rgba(255,255,255,.04);
+      font-size:.82rem;
+      animation:slideIn .3s ease;
+    }
+    @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    .log-time{color:var(--text-muted);font-variant-numeric:tabular-nums}
+    .log-count{font-weight:700;color:var(--accent)}
+
+    /* ===== Footer ===== */
+    .footer{text-align:center;margin-top:32px;padding:16px 0}
+    .footer p{font-size:.72rem;color:var(--text-muted);letter-spacing:.02em}
+
+    /* ===== Waiting Overlay ===== */
+    .waiting-overlay{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:60px 20px;
+    }
+    .waiting-overlay.hidden{display:none}
+    .waiting-pulse{
+      width:64px;height:64px;border-radius:50%;
+      background:var(--accent-gradient);
+      display:flex;align-items:center;justify-content:center;
+      color:#fff;animation:pulse 2s ease-in-out infinite;
+      box-shadow:0 0 30px var(--accent-glow);
+      margin-bottom:20px;
+    }
+    @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.8}}
+    .waiting-text{font-size:.95rem;color:var(--text-secondary);font-weight:500}
+    .waiting-sub{font-size:.78rem;color:var(--text-muted);margin-top:6px}
+
+    /* ===== Scrollbar ===== */
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div>
+          <h1>People Tracker</h1>
+          <p>Live Dashboard</p>
+        </div>
+      </div>
+      <div class="connection-badge disconnected" id="conn-badge">
+        <span class="conn-dot"></span>
+        <span id="conn-label">Camera Offline</span>
+      </div>
+    </header>
+
+    <!-- Waiting State -->
+    <div class="waiting-overlay" id="waiting">
+      <div class="waiting-pulse">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </div>
+      <div class="waiting-text">Waiting for camera…</div>
+      <div class="waiting-sub">Open the camera app on your phone to start streaming</div>
+    </div>
+
+    <!-- Live Content (hidden until camera connects) -->
+    <div id="live-content" class="hidden">
+      <!-- Hero Card -->
+      <div class="hero-card">
+        <div class="hero-count" id="hero-count">0</div>
+        <div class="hero-label">People Detected</div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon purple">👤</div>
+          <div class="stat-val" id="s-current">0</div>
+          <div class="stat-lbl">Current Count</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">📈</div>
+          <div class="stat-val" id="s-peak">0</div>
+          <div class="stat-lbl">Peak Count</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">⚡</div>
+          <div class="stat-val" id="s-fps">0</div>
+          <div class="stat-lbl">Camera FPS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">🎯</div>
+          <div class="stat-val" id="s-conf">—</div>
+          <div class="stat-lbl">Avg Confidence</div>
+        </div>
+      </div>
+
+      <!-- History Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">Count History</span>
+          <span class="chart-subtitle">Last 60 updates</span>
+        </div>
+        <canvas id="history-chart" height="180"></canvas>
+      </div>
+
+      <!-- Detection Log -->
+      <div class="log-card">
+        <div class="log-title">Recent Activity</div>
+        <ul class="log-list" id="log-list"></ul>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <p>People Tracker Dashboard • Real-time data from AI-powered camera</p>
+    </footer>
+  </div>
+
+  <script>
+    // ── DOM ────────────────────────────────────────
+    const connBadge  = document.getElementById('conn-badge');
+    const connLabel  = document.getElementById('conn-label');
+    const waitingEl  = document.getElementById('waiting');
+    const liveEl     = document.getElementById('live-content');
+    const heroCount  = document.getElementById('hero-count');
+    const sCurrent   = document.getElementById('s-current');
+    const sPeak      = document.getElementById('s-peak');
+    const sFps       = document.getElementById('s-fps');
+    const sConf      = document.getElementById('s-conf');
+    const logList    = document.getElementById('log-list');
+    const chartEl    = document.getElementById('history-chart');
+
+    // ── State ─────────────────────────────────────
+    let lastCount = -1;
+    let chartData = [];
+    const MAX_CHART = 60;
+    const MAX_LOG   = 30;
+
+    // ── WebSocket Connection ──────────────────────
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${proto}://${location.host}?role=dashboard`);
+
+      ws.onopen = () => {
+        console.log('Dashboard connected to server');
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          updateUI(data);
+        } catch (err) { /* ignore */ }
+      };
+
+      ws.onclose = () => {
+        setConnection(false);
+        setTimeout(connect, 2000); // auto-reconnect
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    // ── UI Updates ────────────────────────────────
+    function updateUI(data) {
+      const cameraOn = data.cameraConnected;
+      setConnection(cameraOn);
+
+      if (!cameraOn) return;
+
+      const count = data.count || 0;
+      const peak  = data.peak  || 0;
+      const fps   = data.fps   || 0;
+      const conf  = data.avgConfidence || 0;
+
+      // Hero number
+      if (count !== lastCount) {
+        heroCount.textContent = count;
+        sCurrent.textContent = count;
+        heroCount.classList.remove('bump');
+        void heroCount.offsetWidth;
+        heroCount.classList.add('bump');
+
+        // Log entry
+        addLog(count, lastCount);
+        lastCount = count;
+      }
+
+      sPeak.textContent = peak;
+      sFps.textContent = fps;
+      sConf.textContent = conf > 0 ? Math.round(conf * 100) + '%' : '—';
+
+      // Chart data
+      chartData.push(count);
+      if (chartData.length > MAX_CHART) chartData.shift();
+      drawChart();
+    }
+
+    function setConnection(on) {
+      if (on) {
+        connBadge.className = 'connection-badge connected';
+        connLabel.textContent = 'Camera Live';
+        waitingEl.classList.add('hidden');
+        liveEl.classList.remove('hidden');
+      } else {
+        connBadge.className = 'connection-badge disconnected';
+        connLabel.textContent = 'Camera Offline';
+        waitingEl.classList.remove('hidden');
+        liveEl.classList.add('hidden');
+      }
+    }
+
+    function addLog(newCount, oldCount) {
+      const now = new Date();
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const diff = newCount - (oldCount === -1 ? 0 : oldCount);
+      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+      const li = document.createElement('li');
+      li.className = 'log-item';
+      li.innerHTML = `<span class="log-time">${time}</span><span>${arrow} ${newCount} ${newCount === 1 ? 'person' : 'people'}</span><span class="log-count">${diff >= 0 ? '+' : ''}${diff}</span>`;
+      logList.prepend(li);
+      while (logList.children.length > MAX_LOG) logList.lastChild.remove();
+    }
+
+    // ── Mini Chart (Canvas) ───────────────────────
+    function drawChart() {
+      const canvas = chartEl;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width  = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const W = rect.width;
+      const H = rect.height;
+      const pad = { top: 10, right: 10, bottom: 10, left: 10 };
+      const plotW = W - pad.left - pad.right;
+      const plotH = H - pad.top - pad.bottom;
+
+      ctx.clearRect(0, 0, W, H);
+
+      if (chartData.length < 2) return;
+
+      const maxVal = Math.max(...chartData, 1);
+      const stepX = plotW / (MAX_CHART - 1);
+
+      // Gradient fill
+      const gradient = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
+      gradient.addColorStop(0, 'rgba(99, 102, 241, 0.25)');
+      gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+      // Build path
+      ctx.beginPath();
+      chartData.forEach((val, i) => {
+        const x = pad.left + i * stepX;
+        const y = pad.top + plotH - (val / maxVal) * plotH;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+
+      // Stroke line
+      const strokePath = new Path2D();
+      chartData.forEach((val, i) => {
+        const x = pad.left + i * stepX;
+        const y = pad.top + plotH - (val / maxVal) * plotH;
+        if (i === 0) strokePath.moveTo(x, y);
+        else strokePath.lineTo(x, y);
+      });
+      ctx.strokeStyle = '#6366f1';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.stroke(strokePath);
+
+      // Fill area
+      const lastI = chartData.length - 1;
+      ctx.lineTo(pad.left + lastI * stepX, pad.top + plotH);
+      ctx.lineTo(pad.left, pad.top + plotH);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Dot on latest value
+      const lastX = pad.left + lastI * stepX;
+      const lastY = pad.top + plotH - (chartData[lastI] / maxVal) * plotH;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#818cf8';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 7, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(129, 140, 248, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // ── Boot ──────────────────────────────────────
+    connect();
+  </script>
+</body>
+</html>

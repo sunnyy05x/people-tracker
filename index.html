@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Real-time people counter using your camera and AI-powered detection." />
+  <title>People Tracker — AI-Powered People Counter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+      <div class="loader-container">
+        <div class="pulse-ring"></div>
+        <div class="pulse-ring delay-1"></div>
+        <div class="pulse-ring delay-2"></div>
+        <div class="loader-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <p class="loader-text" id="loader-text">Initializing AI Model…</p>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="main-app hidden">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <div class="logo-mark">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <h1>People Tracker</h1>
+        </div>
+        <div class="header-right">
+          <div class="status-badge" id="status-badge">
+            <span class="status-dot"></span>
+            <span class="status-text" id="status-text">Initializing</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Camera View -->
+      <div class="camera-container" id="camera-container">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay-canvas"></canvas>
+
+        <!-- Count Overlay -->
+        <div class="count-overlay" id="count-overlay">
+          <div class="count-number" id="count-number">0</div>
+          <div class="count-label">People Detected</div>
+        </div>
+
+        <!-- Camera Switch Button -->
+        <button class="camera-switch-btn" id="camera-switch-btn" title="Switch Camera">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/>
+            <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/>
+          </svg>
+        </button>
+
+        <!-- No Camera Fallback -->
+        <div class="no-camera" id="no-camera" style="display:none;">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="1" y1="1" x2="23" y2="23"/>
+            <path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h6l2 3h3a2 2 0 0 1 2 2v9"/>
+            <path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/>
+          </svg>
+          <p>Camera access denied or unavailable</p>
+          <button class="retry-btn" id="retry-camera-btn">Grant Access</button>
+        </div>
+      </div>
+
+      <!-- Stats Bar -->
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-current">0</div>
+          <div class="stat-label">Current</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-max">0</div>
+          <div class="stat-label">Peak</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-fps">0</div>
+          <div class="stat-label">FPS</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-confidence">—</div>
+          <div class="stat-label">Avg Conf.</div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-bar">
+        <div class="control-group">
+          <label class="control-label" for="confidence-slider">Min Confidence</label>
+          <div class="slider-container">
+            <input type="range" id="confidence-slider" min="20" max="90" value="50" class="slider" />
+            <span class="slider-value" id="confidence-value">50%</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="toggle-label">
+            <span>Bounding Boxes</span>
+            <div class="toggle-switch">
+              <input type="checkbox" id="toggle-boxes" checked />
+              <span class="toggle-track"></span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <footer class="app-footer">
+        <p>Powered by TensorFlow.js & COCO-SSD • All processing runs locally on your device</p>
+      </footer>
+    </div>
+  </div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
